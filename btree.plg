@@ -1,0 +1,103 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: btree - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\TEMP\RSP224F.tmp" with contents
+[
+/nologo /MLd /W3 /Gm /GX /ZI /Od /I "include" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /FR"Debug/" /Fp"Debug/btree.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /c 
+"C:\Johannes\A4\code\btfile.cpp"
+"C:\Johannes\A4\code\btfilescan.cpp"
+"C:\Johannes\A4\code\btindex.cpp"
+"C:\Johannes\A4\code\btleaf.cpp"
+"C:\Johannes\A4\code\btreetest.cpp"
+"C:\Johannes\A4\code\bufmgr\bufmgr.cpp"
+"C:\Johannes\A4\code\bufmgr\clockframe.cpp"
+"C:\Johannes\A4\code\spacemgr\db.cpp"
+"C:\Johannes\A4\code\bufmgr\frame.cpp"
+"C:\Johannes\A4\code\bufmgr\hash.cpp"
+"C:\Johannes\A4\code\spacemgr\heappage.cpp"
+"C:\Johannes\A4\code\main.cpp"
+"C:\Johannes\A4\code\globaldefs\new_error.cpp"
+"C:\Johannes\A4\code\spacemgr\page.cpp"
+"C:\Johannes\A4\code\bufmgr\replacer.cpp"
+"C:\Johannes\A4\code\sortedpage.cpp"
+"C:\Johannes\A4\code\globaldefs\system_defs.cpp"
+]
+Creating command line "cl.exe @C:\TEMP\RSP224F.tmp" 
+Creating temporary file "C:\TEMP\RSP2250.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib /nologo /subsystem:console /incremental:yes /pdb:"Debug/btree.pdb" /debug /machine:I386 /out:"Debug/btree.exe" /pdbtype:sept 
+.\Debug\btfile.obj
+.\Debug\btfilescan.obj
+.\Debug\btindex.obj
+.\Debug\btleaf.obj
+.\Debug\btreetest.obj
+.\Debug\bufmgr.obj
+.\Debug\clockframe.obj
+.\Debug\db.obj
+.\Debug\frame.obj
+.\Debug\hash.obj
+.\Debug\heappage.obj
+.\Debug\main.obj
+.\Debug\new_error.obj
+.\Debug\page.obj
+.\Debug\replacer.obj
+.\Debug\sortedpage.obj
+.\Debug\system_defs.obj
+]
+Creating command line "link.exe @C:\TEMP\RSP2250.tmp"
+<h3>Output Window</h3>
+Compiling...
+btfile.cpp
+btfilescan.cpp
+btindex.cpp
+btleaf.cpp
+btreetest.cpp
+bufmgr.cpp
+clockframe.cpp
+db.cpp
+frame.cpp
+hash.cpp
+heappage.cpp
+main.cpp
+new_error.cpp
+page.cpp
+replacer.cpp
+sortedpage.cpp
+system_defs.cpp
+Linking...
+Creating temporary file "C:\TEMP\RSP2252.tmp" with contents
+[
+/nologo /o"Debug/btree.bsc" 
+.\Debug\btfile.sbr
+.\Debug\btfilescan.sbr
+.\Debug\btindex.sbr
+.\Debug\btleaf.sbr
+.\Debug\btreetest.sbr
+.\Debug\bufmgr.sbr
+.\Debug\clockframe.sbr
+.\Debug\db.sbr
+.\Debug\frame.sbr
+.\Debug\hash.sbr
+.\Debug\heappage.sbr
+.\Debug\main.sbr
+.\Debug\new_error.sbr
+.\Debug\page.sbr
+.\Debug\replacer.sbr
+.\Debug\sortedpage.sbr
+.\Debug\system_defs.sbr]
+Creating command line "bscmake.exe @C:\TEMP\RSP2252.tmp"
+Creating browse info file...
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+btree.exe - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>
