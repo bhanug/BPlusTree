@@ -18,7 +18,12 @@
 
 BTreeFile::BTreeFile (Status& returnStatus, const char *filename) 
 {
+	Page *page;
+	PageID pid;
+	MINIBASE_DB->GetFileEntry(filename, pid);
+	std::cout << "pid = " << pid << std::endl;
 
+	returnStatus = OK;
 }
 
 

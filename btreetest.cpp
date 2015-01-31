@@ -22,7 +22,7 @@ Status BTreeTest::RunTests(std::istream &in) {
 	remove(logname);
 
 	Status status;
-	minibase_globals = new SystemDefs(status, dbname, logname, 1000,500,200);
+	minibase_globals = new SystemDefs(status, btfname, logname, 1000,500,200);
 	if (status != OK) {
 		minibase_errors.show_errors();
 		exit(1);
