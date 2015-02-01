@@ -7,6 +7,8 @@
 #include "btfilescan.h"
 #include "bt.h"
 
+const int treeOrder = 4;
+
 class BTreeFile: public IndexFile {
 	
 public:

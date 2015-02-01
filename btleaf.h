@@ -7,7 +7,6 @@
 #include "bt.h"
 #include "btindex.h"
 
-
 class BTLeafPage : public SortedPage {
 	
 private:

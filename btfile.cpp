@@ -86,16 +86,16 @@ Status
 BTreeFile::Insert (const int key, const RecordID rid)
 {
 	LeafEntry entry;
-	IndexEntry *new_index = NULL;
+	IndexEntry *new_index_entry = NULL;
 	Status s;
 
 	entry.key = key;
 	entry.rid = rid;
-	s = do_insert(rootPid, entry, new_index);
+	s = do_insert(rootPid, entry, new_index_entry);
 	return OK;
 }
 
-Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new_index)
+Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new_index_entry)
 {
 	SortedPage *page;
 	RecordID tRid;
@@ -138,10 +138,11 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 		MINIBASE_BM->UnpinPage(pid, CLEAN);
 
 		// Recursively, insert entry
-		InsertAux(Pi, entry, newchildentry);
+		do_insert(Pi, entry, new_index_entry);
 
+		// after the Recursion return, we will go to here!
 		// Usual case; didn't split child
-		if (newchildentry == NULL)
+		if (new_index_entry == NULL)
 		{
 			return OK;
 		}
@@ -155,11 +156,11 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 			if (N->GetNumOfRecords() < 2 * treeOrder)
 			{
 				// Insert new child into N
-				N->Insert(newchildentry->key, newchildentry->pid, tRid);
+				N->Insert(new_index_entry->key, new_index_entry->pid, tRid);
 				MINIBASE_BM->UnpinPage(pid, DIRTY);
 				// Set newchildentry to NULL
-				delete newchildentry;
-				newchildentry = NULL;
+				delete new_index_entry;
+				new_index_entry = NULL;
 				return OK;
 			}
 			// Split node ; no enough space
@@ -185,9 +186,9 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 				while (!N->IsEmpty())
 				{
 					N->GetFirst(tEntry.key, tEntry.pid, tRid);
-					if (insertFlag && tEntry.key > newchildentry->key)
+					if (insertFlag && tEntry.key > new_index_entry->key)
 					{
-						temp[i] = *newchildentry;
+						temp[i] = *new_index_entry;
 						i = i + 1;
 						insertFlag = false;
 					}
@@ -198,7 +199,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 
 				if (insertFlag)
 				{
-					temp[i] = *newchildentry;
+					temp[i] = *new_index_entry;
 					i = i + 1;
 				}
 
@@ -215,10 +216,10 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 				}
 
 				// *newchildentry set to guide searches btwn N and N2
-				delete newchildentry;
-				newchildentry = new IndexEntry;
-				newchildentry->key = temp[treeOrder].key;
-				newchildentry->pid = pid2;
+				delete new_index_entry;
+				new_index_entry = new IndexEntry;
+				new_index_entry->key = temp[treeOrder].key;
+				new_index_entry->pid = pid2;
 
 				MINIBASE_BM->UnpinPage(pid, DIRTY);
 				MINIBASE_BM->UnpinPage(pid2, DIRTY);
@@ -287,10 +288,10 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 			}
 
 			// Set *newchildentry
-			delete newchildentry;
-			newchildentry = new IndexEntry;
-			newchildentry->key = temp[treeOrder].key;
-			newchildentry->pid = pid2;
+			delete new_index_entry;
+			new_index_entry = new IndexEntry;
+			new_index_entry->key = temp[treeOrder].key;
+			new_index_entry->pid = pid2;
 
 			// Set sibling pointers
 			Spid = L->GetNextPage();
