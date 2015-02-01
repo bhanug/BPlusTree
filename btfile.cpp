@@ -28,6 +28,7 @@ BTreeFile::BTreeFile (Status& returnStatus, const char *filename)
 	// create a new B+ tree index, add a new file entry into database
 	else
 	{
+		std::cout << "create a new B+ Tree" << std::endl;
 		MINIBASE_BM->NewPage(rootPid, rootPage);
 		MINIBASE_DB->AddFileEntry(filename, rootPid);
 		((SortedPage *)rootPage)->Init(rootPid);
@@ -92,7 +93,31 @@ BTreeFile::Insert (const int key, const RecordID rid)
 	entry.key = key;
 	entry.rid = rid;
 	s = do_insert(rootPid, entry, new_index_entry);
-	return OK;
+
+	// root node was just split
+	if (new_index_entry != NULL)
+	{
+		PageID Rpid;
+		RecordID tRid;
+		SortedPage *Rpage;
+		BTIndexPage *R;
+
+		// Create a new root-node page
+		MINIBASE_BM->NewPage(Rpid, (Page *&)Rpage);
+		MINIBASE_BM->PinPage(Rpid, (Page *&)Rpage);
+		R = (BTIndexPage *)Rpage;
+		R->Init(Rpid);
+		R->SetType(INDEX_NODE);
+		R->Insert(new_index_entry->key, new_index_entry->pid, tRid);
+		R->SetLeftLink(rootPid);
+
+		// Change the root node
+		rootPid = Rpid;
+
+		MINIBASE_BM->UnpinPage(Rpid, DIRTY);
+		delete new_index_entry;
+	}
+	return s;
 }
 
 Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new_index_entry)
@@ -386,6 +411,7 @@ BTreeFile::PrintTree (PageID pageID)
 	
 	if (type == INDEX_NODE) 
 	{
+		std::cout << "Page ID = " << pageID << " is a INDEX_NODE" << std::endl;
 		index = (BTIndexPage *)page;
 		curPageID = index->GetLeftLink();
 		PrintTree(curPageID);
@@ -398,6 +424,9 @@ BTreeFile::PrintTree (PageID pageID)
 		UNPIN(pageID, CLEAN);
 		PrintNode(pageID);
 	} 
+	else {
+		std::cout << "Page ID = " << pageID << " is a LEAF_NODE" << std::endl;
+	}
 	return OK;
 }
 
