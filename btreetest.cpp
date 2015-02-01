@@ -114,7 +114,7 @@ void BTreeTest::insertHighLow(BTreeFile *btf, int low, int high) {
     for (int i=0; i<numkey; i++) {
 		RecordID rid;
         rid.pageNo=i; rid.slotNo=i+1;
-		int key = low + i; // rand() % numkey;
+		int key = low + rand() % numkey;
 		std::cout << "  Insert: "<<key<<" @[pg,slot]=["<<rid.pageNo<<","<<rid.slotNo<<"]"<<std::endl;
         if (btf->Insert(key, rid) != OK) {
 			std::cout << "  Insertion failed."<< std::endl;

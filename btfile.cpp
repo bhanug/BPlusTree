@@ -84,18 +84,20 @@ BTreeFile::DestroyFile()
 
 
 Status 
-BTreeFile::Insert (const int key, const RecordID rid)
+BTreeFile::Insert(const int key, const RecordID rid)
 {
+	// To do
 	LeafEntry entry;
-	IndexEntry *new_index_entry = NULL;
+	IndexEntry *newchildentry = NULL;
 	Status s;
 
 	entry.key = key;
 	entry.rid = rid;
-	s = do_insert(rootPid, entry, new_index_entry);
+	s = do_insert(rootPid, entry, newchildentry);
+
 
 	// root node was just split
-	if (new_index_entry != NULL)
+	if (newchildentry != NULL)
 	{
 		PageID Rpid;
 		RecordID tRid;
@@ -108,19 +110,20 @@ BTreeFile::Insert (const int key, const RecordID rid)
 		R = (BTIndexPage *)Rpage;
 		R->Init(Rpid);
 		R->SetType(INDEX_NODE);
-		R->Insert(new_index_entry->key, new_index_entry->pid, tRid);
+		R->Insert(newchildentry->key, newchildentry->pid, tRid);
 		R->SetLeftLink(rootPid);
 
 		// Change the root node
 		rootPid = Rpid;
 
 		MINIBASE_BM->UnpinPage(Rpid, DIRTY);
-		delete new_index_entry;
+		delete newchildentry;
 	}
+
 	return s;
 }
 
-Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new_index_entry)
+Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &newchildentry)
 {
 	SortedPage *page;
 	RecordID tRid;
@@ -163,11 +166,10 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 		MINIBASE_BM->UnpinPage(pid, CLEAN);
 
 		// Recursively, insert entry
-		do_insert(Pi, entry, new_index_entry);
+		do_insert(Pi, entry, newchildentry);
 
-		// after the Recursion return, we will go to here!
 		// Usual case; didn't split child
-		if (new_index_entry == NULL)
+		if (newchildentry == NULL)
 		{
 			return OK;
 		}
@@ -181,11 +183,11 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 			if (N->GetNumOfRecords() < 2 * treeOrder)
 			{
 				// Insert new child into N
-				N->Insert(new_index_entry->key, new_index_entry->pid, tRid);
+				N->Insert(newchildentry->key, newchildentry->pid, tRid);
 				MINIBASE_BM->UnpinPage(pid, DIRTY);
 				// Set newchildentry to NULL
-				delete new_index_entry;
-				new_index_entry = NULL;
+				delete newchildentry;
+				newchildentry = NULL;
 				return OK;
 			}
 			// Split node ; no enough space
@@ -211,9 +213,9 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 				while (!N->IsEmpty())
 				{
 					N->GetFirst(tEntry.key, tEntry.pid, tRid);
-					if (insertFlag && tEntry.key > new_index_entry->key)
+					if (insertFlag && tEntry.key > newchildentry->key)
 					{
-						temp[i] = *new_index_entry;
+						temp[i] = *newchildentry;
 						i = i + 1;
 						insertFlag = false;
 					}
@@ -224,7 +226,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 
 				if (insertFlag)
 				{
-					temp[i] = *new_index_entry;
+					temp[i] = *newchildentry;
 					i = i + 1;
 				}
 
@@ -241,10 +243,10 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 				}
 
 				// *newchildentry set to guide searches btwn N and N2
-				delete new_index_entry;
-				new_index_entry = new IndexEntry;
-				new_index_entry->key = temp[treeOrder].key;
-				new_index_entry->pid = pid2;
+				delete newchildentry;
+				newchildentry = new IndexEntry;
+				newchildentry->key = temp[treeOrder].key;
+				newchildentry->pid = pid2;
 
 				MINIBASE_BM->UnpinPage(pid, DIRTY);
 				MINIBASE_BM->UnpinPage(pid2, DIRTY);
@@ -313,10 +315,10 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 			}
 
 			// Set *newchildentry
-			delete new_index_entry;
-			new_index_entry = new IndexEntry;
-			new_index_entry->key = temp[treeOrder].key;
-			new_index_entry->pid = pid2;
+			delete newchildentry;
+			newchildentry = new IndexEntry;
+			newchildentry->key = temp[treeOrder].key;
+			newchildentry->pid = pid2;
 
 			// Set sibling pointers
 			Spid = L->GetNextPage();
@@ -423,10 +425,18 @@ BTreeFile::PrintTree (PageID pageID)
 		}
 		UNPIN(pageID, CLEAN);
 		PrintNode(pageID);
-	} 
+	} /*
 	else {
 		std::cout << "Page ID = " << pageID << " is a LEAF_NODE" << std::endl;
-	}
+		index = (BTIndexPage *)page;
+		s = index->GetFirst(key, curPageID, curRid);
+		while (s != DONE)
+		{
+			std::cout << "key = " << key << " record.pageno = " << curRid.pageNo << " record.slot = " << curRid.slotNo << std::endl;
+			s = index->GetNext(key, curPageID, curRid);
+		}
+		UNPIN(pageID, CLEAN);
+	} */
 	return OK;
 }
 
