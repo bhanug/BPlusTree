@@ -18,11 +18,23 @@
 
 BTreeFile::BTreeFile (Status& returnStatus, const char *filename) 
 {
-	Page *page;
-	PageID pid;
-	MINIBASE_DB->GetFileEntry(filename, pid);
-	std::cout << "pid = " << pid << std::endl;
+	Page *rootPage;
 
+	// filename contains the name of the BTreeFile to be opened
+	if (MINIBASE_DB->GetFileEntry(filename, rootPid) == OK)
+	{
+		MINIBASE_BM->PinPage(rootPid, rootPage);
+	}
+	// create a new B+ tree index, add a new file entry into database
+	else
+	{
+		MINIBASE_BM->NewPage(rootPid, rootPage);
+		MINIBASE_DB->AddFileEntry(filename, rootPid);
+		((SortedPage *)rootPage)->Init(rootPid);
+
+		// initialize the type of the page
+		((SortedPage *)rootPage)->SetType(LEAF_NODE);
+	}
 	returnStatus = OK;
 }
 
