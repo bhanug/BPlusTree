@@ -36,7 +36,8 @@ private:
 	
 	Status PrintTree(PageID pid);
 	Status PrintNode(PageID pid);
-	Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new_index);
+	Status do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new_index);
+	Status do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry *&oldchildentry);
 };
 
 
