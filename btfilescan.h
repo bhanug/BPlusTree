@@ -17,6 +17,17 @@ public:
 	~BTreeFileScan();
 	
 private:
+	BTreeFile *tree;
+	BTLeafPage *curLeaf;
+	PageID cur_pid;
+
+	const int *highKey;
+	const int *lowKey;
+	bool firstTime;
+	int curKey;
+	RecordID cur_rid;
+	RecordID t_rid;
+	Status status;
 
 };
 

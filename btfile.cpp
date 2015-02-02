@@ -797,7 +797,83 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 IndexFileScan *
 BTreeFile::OpenScan(const int *lowKey, const int *highKey)
 {
-	return NULL;
+	BTreeFileScan* bTFileScan = new BTreeFileScan;
+	PageID pid;
+	Status s;
+
+	bTFileScan->highKey = highKey;
+	bTFileScan->lowKey = lowKey;
+	bTFileScan->tree = this;
+	bTFileScan->firstTime = true;
+
+	IndexEntry index_entry, t_entry;
+	RecordID t_rid;
+
+	int temp = 0;
+	SortedPage *page;
+
+	if (lowKey != NULL)
+	{
+		pid = rootPid;
+
+		MINIBASE_BM->PinPage(rootPid, (Page *&)page);
+		while (page->GetType() == INDEX_NODE)
+		{
+			((BTIndexPage *)page)->GetFirst(index_entry.key, index_entry.pid, t_rid);
+			MINIBASE_BM->UnpinPage(pid, CLEAN);
+			////////////////
+			temp = 0;
+			while (index_entry.key < *lowKey)
+			{
+				temp++;
+				t_entry = index_entry;
+
+				if (((BTIndexPage *)page)->GetNext(index_entry.key, index_entry.pid, t_rid) == DONE)
+				{
+					break;
+				}
+			}
+
+			///////////////////
+			if (!temp)
+			{
+				pid = ((BTIndexPage *)page)->GetLeftLink();
+			}
+			else
+			{
+				index_entry = t_entry;
+				pid = index_entry.pid;
+			}
+
+			MINIBASE_BM->PinPage(pid, (Page *&)page);
+		}
+		//bTFileScan->curLeaf = (BTLeafPage *&)page;
+		MINIBASE_BM->UnpinPage(pid, CLEAN);
+		s = MINIBASE_BM->PinPage(pid, (Page *&)bTFileScan->curLeaf);
+		bTFileScan->cur_pid = pid;
+		if (s != OK) return NULL;
+	}
+	else
+	{
+		PageID nextPid = rootPid;
+		MINIBASE_BM->PinPage(nextPid, (Page *&)page);
+
+		while (page->GetType() == INDEX_NODE)
+		{
+			MINIBASE_BM->UnpinPage(nextPid, CLEAN);
+			nextPid = ((BTIndexPage*&)page)->GetLeftLink();
+			MINIBASE_BM->PinPage(nextPid, (Page *&)page);
+		}
+		MINIBASE_BM->UnpinPage(nextPid, CLEAN);
+
+
+		s = MINIBASE_BM->PinPage(nextPid, (Page *&)bTFileScan->curLeaf);
+		bTFileScan->cur_pid = nextPid;
+		if (s != OK) return NULL;
+
+	}
+
+	return bTFileScan;
 }
 
 
