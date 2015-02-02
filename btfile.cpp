@@ -30,7 +30,9 @@ BTreeFile::BTreeFile (Status& returnStatus, const char *filename)
 	{
 		std::cout << "create a new B+ Tree" << std::endl;
 		MINIBASE_BM->NewPage(rootPid, rootPage);
-		MINIBASE_DB->AddFileEntry(filename, rootPid);
+		if (MINIBASE_DB->AddFileEntry(filename, rootPid) != OK) {
+			std::cout << "error in AddFileEntry()" << std::endl;
+		}
 		((SortedPage *)rootPage)->Init(rootPid);
 
 		// initialize the type of the page
@@ -405,7 +407,6 @@ BTreeFile::PrintTree (PageID pageID)
 	RecordID curRid;
 	int  key;
 
-
 	PIN (pageID, page);
 	NodeType type = (NodeType) page->GetType ();
 	
@@ -426,6 +427,8 @@ BTreeFile::PrintTree (PageID pageID)
 	} 
 	else {
 		std::cout << "Page ID = " << pageID << " is a LEAF_NODE" << std::endl;
+		UNPIN(pageID, CLEAN);
+		PrintNode(pageID);
 	}
 	return OK;
 }
