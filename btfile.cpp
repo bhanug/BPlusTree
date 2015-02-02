@@ -387,7 +387,9 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 
 		N->GetFirst(Ki1.key, Ki1.pid, tRid);
 
-		while (Ki1.key < entry.key)
+		std::cout << "ki1.key = " << Ki1.key << std::endl;
+
+		while (Ki1.key <= entry.key)
 		{
 			i++;
 			Ki = Ki1;
@@ -399,10 +401,14 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 			}
 		}
 
+		std::cout << "Ki = " << Ki.key << "  ki1 = " << Ki1.key << std::endl;
+		std::cout << "i = " << i << std::endl;
+
 		///////////////////
 		if (i == 0)
 		{
 			Pi = N->GetLeftLink();
+			std::cout << "get left link = " << Pi << std::endl;
 		}
 		else
 		{
