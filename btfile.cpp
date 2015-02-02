@@ -237,6 +237,9 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 
 				N2->SetLeftLink(temp[j].pid);
 
+				// I modify here
+				int splited_new_entry = j;
+				j++;
 				for (; j < i; j++)
 				{
 					N2->Insert(temp[j].key, temp[j].pid, tRid);
