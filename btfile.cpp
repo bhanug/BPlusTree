@@ -137,10 +137,9 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 		int i = 0;
 
 		// Choose a subtree
-
 		N->GetFirst(Ki1.key, Ki1.pid, tRid);
 
-		while (Ki1.key < entry.key)
+		while (Ki1.key < entry.key) // not <= , beacuse in Index Node there is no dumplicate number 
 		{
 			i++;
 			Ki = Ki1;
@@ -168,12 +167,11 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 		do_insert(Pi, entry, new_index_entry);
 
 		// after the Recursion return, we will go to here!
-		// Usual case; didn't split child
 		if (new_index_entry == NULL)
 		{
 			return OK;
 		}
-		// We split child, must insert *newchildentry in N
+		// We split child, must insert *new_index_entry into N
 		else
 		{
 			MINIBASE_BM->PinPage(pid, (Page *&)page);
@@ -237,7 +235,8 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 
 				N2->SetLeftLink(temp[j].pid);
 
-				// I modify here
+				// because of the property of B+ Tree, No dumplicate number in Index Node
+				// so, jump j
 				int splited_new_entry = j;
 				j++;
 				for (; j < i; j++)
@@ -389,8 +388,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 		// Choose a subtree
 
 		N->GetFirst(Ki1.key, Ki1.pid, tRid);
-
-		std::cout << "ki1.key = " << Ki1.key << std::endl;
 
 		while (Ki1.key <= entry.key)
 		{
