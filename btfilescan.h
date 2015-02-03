@@ -17,7 +17,6 @@ public:
 	~BTreeFileScan();
 	
 private:
-	//BTreeFile *tree;
 	BTLeafPage *curLeaf;
 	PageID cur_pid;
 
