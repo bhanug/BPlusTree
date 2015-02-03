@@ -433,14 +433,23 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 		{
 			MINIBASE_BM->PinPage(pid, (Page *&)page);
 			N = (BTIndexPage *)page;
+			std::cout << "we will delete this key in parent node : " << oldchildentry->key << std::endl;
 			N->Delete(oldchildentry->key, tRid);
+			std::cout << "after delete, the number of records = " << N->GetNumOfRecords() << std::endl;
 
 			// Change root
 			if (pid == rootPid && N->GetNumOfRecords() <= 0)
 			{
 				rootPid = N->GetLeftLink();
+				// reset to the LEAF_NODE
+				BTIndexPage *new_root_page;
+				MINIBASE_BM->PinPage(rootPid, (Page *&)new_root_page);
+				new_root_page->SetType(LEAF_NODE);
+				MINIBASE_BM->UnpinPage(rootPid);
+
 				delete oldchildentry;
 				oldchildentry = NULL;
+
 				MINIBASE_BM->UnpinPage(pid, DIRTY);
 				MINIBASE_BM->FreePage(pid);
 				return OK;
@@ -624,6 +633,8 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 			P->GetFirst(left.key, left.pid, tRid);
 			P->GetNext(right.key, right.pid, tRid);
 
+			std::cout << "pid = " << pid << ", left.pid = " << left.pid << "  right.pid = " << right.pid << std::endl;
+
 			// Bring right sibling
 			if (P->GetLeftLink() == pid || left.pid == pid)
 			{
@@ -631,7 +642,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 				{
 					right = left;
 				}
-
 				MINIBASE_BM->PinPage(right.pid, (Page *&)Spage);
 				S = (BTLeafPage *)Spage;
 
