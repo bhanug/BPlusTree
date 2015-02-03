@@ -273,21 +273,21 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 		// In the case that the leaf is full
 		else
 		{
-			PageID pidNew, Spid;
-			SortedPage *page2, *Spage;
-			BTLeafPage *L2, *S;
+			PageID pidNew, siblingPid;
+			SortedPage *page2, *sPage;
+			BTLeafPage *newLeafPage, *sibling;
 			int n = leafPage->GetNumOfRecords();
 			LeafEntry tEntry, *temp = new LeafEntry[n + 1];
-			std::cout << "new allocate n temp LeafEntrys, n = " << n << std::endl;
+			//std::cout << "new allocate n temp LeafEntrys, n = " << n << std::endl;
 			int i = 0, j = 0;
 			bool insertFlag = true;
 
 			// Allocate a new leaf-node page
 			MINIBASE_BM->NewPage(pidNew, (Page *&)page2);
 			MINIBASE_BM->PinPage(pidNew, (Page *&)page2);
-			L2 = (BTLeafPage *)page2;
-			L2->Init(pidNew);
-			L2->SetType(LEAF_NODE);
+			newLeafPage = (BTLeafPage *)page2;
+			newLeafPage->Init(pidNew);
+			newLeafPage->SetType(LEAF_NODE);
 
 			// Split the old leafPage
 			while (!leafPage->IsEmpty())
@@ -317,7 +317,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 
 			for (; j < i; j++)
 			{
-				L2->Insert(temp[j].key, temp[j].rid, tRid);
+				newLeafPage->Insert(temp[j].key, temp[j].rid, tRid);
 			}
 
 			// Set *newchildentry
@@ -327,19 +327,19 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 			new_index_entry->pid = pidNew;
 
 			// Set sibling pointers
-			Spid = leafPage->GetNextPage();
+			siblingPid = leafPage->GetNextPage();
 
-			if (Spid != -1)
+			if (siblingPid != -1)
 			{
-				MINIBASE_BM->PinPage(Spid, (Page *&)Spage);
-				S = (BTLeafPage *)Spage;
-				S->SetPrevPage(pidNew);
-				MINIBASE_BM->UnpinPage(Spid, DIRTY);
+				MINIBASE_BM->PinPage(siblingPid, (Page *&)sPage);
+				sibling = (BTLeafPage *)sPage;
+				sibling->SetPrevPage(pidNew);
+				MINIBASE_BM->UnpinPage(siblingPid, DIRTY);
 			}
 
 			leafPage->SetNextPage(pidNew);
-			L2->SetPrevPage(pid);
-			L2->SetNextPage(Spid);
+			newLeafPage->SetPrevPage(pid);
+			newLeafPage->SetNextPage(siblingPid);
 
 			MINIBASE_BM->UnpinPage(pid, DIRTY);
 			MINIBASE_BM->UnpinPage(pidNew, DIRTY);
@@ -403,8 +403,8 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 			}
 		}
 
-		std::cout << "Ki = " << Ki.key << "  ki1 = " << Ki1.key << std::endl;
-		std::cout << "i = " << i << std::endl;
+		//std::cout << "Ki = " << Ki.key << "  ki1 = " << Ki1.key << std::endl;
+		//std::cout << "i = " << i << std::endl;
 
 		///////////////////
 		if (i == 0)
