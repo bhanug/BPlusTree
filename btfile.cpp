@@ -132,39 +132,38 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 	if (page->GetType() == INDEX_NODE)
 	{
 		BTIndexPage *N = (BTIndexPage *)page;	// non-leaf node
-		PageID Pi;
-		IndexEntry Ki, Ki1;
+		PageID childPid;
+		IndexEntry index, indexSaved;
 		int i = 0;
 
 		// Choose a subtree
-		N->GetFirst(Ki1.key, Ki1.pid, tRid);
+		N->GetFirst(index.key, index.pid, tRid);
 
-		while (Ki1.key < entry.key) // not <= , beacuse in Index Node there is no dumplicate number 
+		while (index.key < entry.key) // not <= , beacuse in Index Node there is no dumplicate number 
 		{
 			i++;
-			Ki = Ki1;
+			indexSaved = index;
 
-			if (N->GetNext(Ki1.key, Ki1.pid, tRid) == DONE)
+			if (N->GetNext(index.key, index.pid, tRid) == DONE)
 			{
 				//No more entires
 				break;
 			}
 		}
 
-		///////////////////
 		if (i == 0)
 		{
-			Pi = N->GetLeftLink();
+			childPid = N->GetLeftLink();
 		}
 		else
 		{
-			Pi = Ki.pid;
+			childPid = indexSaved.pid;
 		}
 
 		MINIBASE_BM->UnpinPage(pid, CLEAN);
 
 		// Recursively, insert entry
-		do_insert(Pi, entry, new_index_entry);
+		do_insert(childPid, entry, new_index_entry);
 
 		// after the Recursion return, we will go to here!
 		if (new_index_entry == NULL)
@@ -259,19 +258,19 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 	}
 	else
 	{
-		BTLeafPage *L = (BTLeafPage *)page;	// leaf node
+		BTLeafPage *leafPage = (BTLeafPage *)page;	// leaf node
 
 		// Usual case
-		if (L->GetNumOfRecords() < 2 * treeOrder)
+		if (leafPage->GetNumOfRecords() < 2 * treeOrder)
 		{
-			L->Insert(entry.key, entry.rid, tRid);
+			leafPage->Insert(entry.key, entry.rid, tRid);
 			MINIBASE_BM->UnpinPage(pid, DIRTY);
 			return OK;
 		}
 		// In the case that the leaf is full
 		else
 		{
-			PageID pid2, Spid;
+			PageID pidNew, Spid;
 			SortedPage *page2, *Spage;
 			BTLeafPage *L2, *S;
 			LeafEntry tEntry, *temp = new LeafEntry[2 * treeOrder + 1];
@@ -279,16 +278,16 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 			bool insertFlag = true;
 
 			// Allocate a new leaf-node page
-			MINIBASE_BM->NewPage(pid2, (Page *&)page2);
-			MINIBASE_BM->PinPage(pid2, (Page *&)page2);
+			MINIBASE_BM->NewPage(pidNew, (Page *&)page2);
+			MINIBASE_BM->PinPage(pidNew, (Page *&)page2);
 			L2 = (BTLeafPage *)page2;
-			L2->Init(pid2);
+			L2->Init(pidNew);
 			L2->SetType(LEAF_NODE);
 
-			// Split L
-			while (!L->IsEmpty())
+			// Split the old leafPage
+			while (!leafPage->IsEmpty())
 			{
-				L->GetFirst(tEntry.key, tEntry.rid, tRid);
+				leafPage->GetFirst(tEntry.key, tEntry.rid, tRid);
 				if (insertFlag && tEntry.key > entry.key)
 				{
 					temp[i] = entry;
@@ -297,7 +296,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 				}
 				temp[i] = tEntry;
 				i = i + 1;
-				L->Delete(tEntry.key, tEntry.rid, tRid);
+				leafPage->Delete(tEntry.key, tEntry.rid, tRid);
 			}
 
 			if (insertFlag)
@@ -308,7 +307,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 
 			for (j = 0; j < treeOrder; j++)
 			{
-				L->Insert(temp[j].key, temp[j].rid, tRid);
+				leafPage->Insert(temp[j].key, temp[j].rid, tRid);
 			}
 
 			for (; j < i; j++)
@@ -320,25 +319,25 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 			delete new_index_entry;
 			new_index_entry = new IndexEntry;
 			new_index_entry->key = temp[treeOrder].key;
-			new_index_entry->pid = pid2;
+			new_index_entry->pid = pidNew;
 
 			// Set sibling pointers
-			Spid = L->GetNextPage();
+			Spid = leafPage->GetNextPage();
 
 			if (Spid != -1)
 			{
 				MINIBASE_BM->PinPage(Spid, (Page *&)Spage);
 				S = (BTLeafPage *)Spage;
-				S->SetPrevPage(pid2);
+				S->SetPrevPage(pidNew);
 				MINIBASE_BM->UnpinPage(Spid, DIRTY);
 			}
 
-			L->SetNextPage(pid2);
+			leafPage->SetNextPage(pidNew);
 			L2->SetPrevPage(pid);
 			L2->SetNextPage(Spid);
 
 			MINIBASE_BM->UnpinPage(pid, DIRTY);
-			MINIBASE_BM->UnpinPage(pid2, DIRTY);
+			MINIBASE_BM->UnpinPage(pidNew, DIRTY);
 		}
 	}
 
