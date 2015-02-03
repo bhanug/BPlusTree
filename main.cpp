@@ -13,6 +13,12 @@ int main(int argc, char *argv[]) {
 	std::cout << "btree tester" <<std::endl;
 	std::cout << "Execute 'btree ?' for info"<<std::endl<<std::endl;
 
+	std::cout << "Size of IndexEntry = " << sizeof(IndexEntry) << std::endl;
+	std::cout << "Size of LeafEntry = " << sizeof(LeafEntry) << std::endl;
+	std::cout << "Size of HEAPPAGE_DATA_SIZE = " << HEAPPAGE_DATA_SIZE << std::endl;
+	std::cout << "Size of shot       = " << sizeof(short) << std::endl;
+	std::cout << "Size of Index Page = " << sizeof(BTIndexPage) << std::endl;
+
 	BTreeTest btt;
 	if (argc==1) {
 		btt.RunTests(std::cin);

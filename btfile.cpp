@@ -251,7 +251,11 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 		// Usual case
 		if (leafPage->GetNumOfRecords() < 2 * treeOrder)
 		{
-			leafPage->Insert(leafEntry.key, leafEntry.rid, tRid);
+			std::cout << "insert in leaf " << std::endl;
+			if (leafPage->Insert(leafEntry.key, leafEntry.rid, tRid) != OK) {
+				std::cout << "Error in insert to leaf" << std::endl;
+				return FAIL;
+			}
 			MINIBASE_BM->UnpinPage(pid, DIRTY);
 			return OK;
 		}
