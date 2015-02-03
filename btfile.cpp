@@ -88,13 +88,13 @@ BTreeFile::DestroyFile()
 Status 
 BTreeFile::Insert (const int key, const RecordID rid)
 {
-	LeafEntry entry;
+	LeafEntry leafEntry;
 	IndexEntry *new_index_entry = NULL;
 	Status s;
 
-	entry.key = key;
-	entry.rid = rid;
-	s = do_insert(rootPid, entry, new_index_entry);
+	leafEntry.key = key;
+	leafEntry.rid = rid;
+	s = do_insert(rootPid, leafEntry, new_index_entry);
 
 	// root node was just split
 	if (new_index_entry != NULL)
@@ -131,20 +131,20 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 
 	if (page->GetType() == INDEX_NODE)
 	{
-		BTIndexPage *N = (BTIndexPage *)page;	// non-leaf node
+		BTIndexPage *indexPage = (BTIndexPage *)page;	// non-leaf node
 		PageID childPid;
 		IndexEntry index, indexSaved;
 		int i = 0;
 
 		// Choose a subtree
-		N->GetFirst(index.key, index.pid, tRid);
+		indexPage->GetFirst(index.key, index.pid, tRid);
 
 		while (index.key < entry.key) // not <= , beacuse in Index Node there is no dumplicate number 
 		{
 			i++;
 			indexSaved = index;
 
-			if (N->GetNext(index.key, index.pid, tRid) == DONE)
+			if (indexPage->GetNext(index.key, index.pid, tRid) == DONE)
 			{
 				//No more entires
 				break;
@@ -153,7 +153,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 
 		if (i == 0)
 		{
-			childPid = N->GetLeftLink();
+			childPid = indexPage->GetLeftLink();
 		}
 		else
 		{
@@ -174,13 +174,13 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 		else
 		{
 			MINIBASE_BM->PinPage(pid, (Page *&)page);
-			N = (BTIndexPage *)page;
+			indexPage = (BTIndexPage *)page;
 
 			// Usual case ; there exists enough space
-			if (N->GetNumOfRecords() < 2 * treeOrder)
+			if (indexPage->GetNumOfRecords() < 2 * treeOrder)
 			{
 				// Insert new child into N
-				N->Insert(new_index_entry->key, new_index_entry->pid, tRid);
+				indexPage->Insert(new_index_entry->key, new_index_entry->pid, tRid);
 				MINIBASE_BM->UnpinPage(pid, DIRTY);
 				// Set newchildentry to NULL
 				delete new_index_entry;
@@ -192,7 +192,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 			{
 				PageID pid2;
 				SortedPage *page2;
-				BTIndexPage *N2;
+				BTIndexPage *newIndexPage;
 				IndexEntry tEntry, *temp = new IndexEntry[2 * treeOrder + 1];
 				int i = 0, j = 0;
 				bool insertFlag = true;
@@ -200,16 +200,16 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 				// Allocate a new nonleaf-node page
 				MINIBASE_BM->NewPage(pid2, (Page *&)page2);
 				MINIBASE_BM->PinPage(pid2, (Page *&)page2);
-				N2 = (BTIndexPage *)page2;
-				N2->Init(pid2);
-				N2->SetType(INDEX_NODE);
+				newIndexPage = (BTIndexPage *)page2;
+				newIndexPage->Init(pid2);
+				newIndexPage->SetType(INDEX_NODE);
 
 				// Split N
-				N->GetFirst(tEntry.key, tEntry.pid, tRid);
+				indexPage->GetFirst(tEntry.key, tEntry.pid, tRid);
 
-				while (!N->IsEmpty())
+				while (!indexPage->IsEmpty())
 				{
-					N->GetFirst(tEntry.key, tEntry.pid, tRid);
+					indexPage->GetFirst(tEntry.key, tEntry.pid, tRid);
 					if (insertFlag && tEntry.key > new_index_entry->key)
 					{
 						temp[i] = *new_index_entry;
@@ -218,7 +218,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 					}
 					temp[i] = tEntry;
 					i = i + 1;
-					N->Delete(tEntry.key, tRid);
+					indexPage->Delete(tEntry.key, tRid);
 				}
 
 				if (insertFlag)
@@ -229,10 +229,10 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 
 				for (; j < treeOrder; j++)
 				{
-					N->Insert(temp[j].key, temp[j].pid, tRid);
+					indexPage->Insert(temp[j].key, temp[j].pid, tRid);
 				}
 
-				N2->SetLeftLink(temp[j].pid);
+				newIndexPage->SetLeftLink(temp[j].pid);
 
 				// because of the property of B+ Tree, No dumplicate number in Index Node
 				// so, jump j
@@ -240,7 +240,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 				j++;
 				for (; j < i; j++)
 				{
-					N2->Insert(temp[j].key, temp[j].pid, tRid);
+					newIndexPage->Insert(temp[j].key, temp[j].pid, tRid);
 				}
 
 				// *newchildentry set to guide searches btwn N and N2
