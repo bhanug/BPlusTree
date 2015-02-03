@@ -372,8 +372,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 		IndexEntry Ki, Ki1;
 		int i = 0;
 
-		// Choose a subtree
-
 		N->GetFirst(Ki1.key, Ki1.pid, tRid);
 
 		while (Ki1.key <= entry.key)
@@ -395,7 +393,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 		if (i == 0)
 		{
 			Pi = N->GetLeftLink();
-			std::cout << "get left link = " << Pi << std::endl;
 		}
 		else
 		{
@@ -407,12 +404,12 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 		// Recursively, delete entry
 		do_delete(pid, Pi, entry, oldchildentry);
 
-		// Usual case : Do not delete child node
+		//  everything is OK, Didn't delete any Index node
 		if (oldchildentry == NULL)
 		{
 			return OK;
 		}
-		// Discard child node
+		// Cao!!! delete some Index node
 		else
 		{
 			MINIBASE_BM->PinPage(pid, (Page *&)page);
@@ -427,13 +424,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 				std::cout << "Change root" << std::endl;
 				rootPid = N->GetLeftLink();
 				std::cout << "new rootpid = " << rootPid << std::endl;
-				// reset to the LEAF_NODE
-				/*BTIndexPage *new_root_page;
-				MINIBASE_BM->PinPage(rootPid, (Page *&)new_root_page);
-				new_root_page->SetType(LEAF_NODE);
-				MINIBASE_BM->UnpinPage(rootPid);
-				*/
-
 				if (oldchildentry != NULL) {
 					delete oldchildentry;
 				}
@@ -607,7 +597,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 			}
 			oldchildentry = NULL;
 			MINIBASE_BM->UnpinPage(pid, DIRTY);
-			std::cout << "ok ???" << std::endl;
 			return OK;
 		}
 		else
@@ -622,10 +611,9 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 			MINIBASE_BM->PinPage(Ppid, (Page *&)Ppage);
 			P = (BTIndexPage *)Ppage;
 
-			//std::cout << "pid = " << pid << ", left.pid = " << left.pid << "  right.pid = " << right.pid << std::endl;
-
-			// Bring right sibling
-			if (P->GetLeftLink() == pid)
+			// only the most left node will get element from its right sibling,
+			// other nodes are always get from its left sibling
+			if (P->GetLeftLink() == pid) // the most left node
 			{
 				P->GetFirst(right.key, right.pid, tRid);
 
@@ -696,7 +684,7 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 					return OK;
 				}
 			}
-			// Bring left sibling
+			// all nodes, except the most-left one, will get element from its left sibling
 			else
 			{
 				P->GetFirst(right.key, right.pid, tRid);
@@ -761,7 +749,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 
 					// Adjust sibling pointers
 					tPid = L->GetNextPage();
-					std::cout << "tPid =" << tPid << std::endl;
 
 					if (tPid != -1)
 					{
