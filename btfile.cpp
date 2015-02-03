@@ -442,6 +442,7 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 			{
 				std::cout << "Change root" << std::endl;
 				rootPid = N->GetLeftLink();
+				std::cout << "new rootpid = " << rootPid << std::endl;
 				// reset to the LEAF_NODE
 				/*BTIndexPage *new_root_page;
 				MINIBASE_BM->PinPage(rootPid, (Page *&)new_root_page);
@@ -767,7 +768,7 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 					}
 
 					// Adjust sibling pointers
-					tPid = L->GetPrevPage();
+					tPid = L->GetNextPage();
 					std::cout << "tPid =" << tPid << std::endl;
 
 					if (tPid != -1)
@@ -776,11 +777,11 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 						BTLeafPage *tS;
 						MINIBASE_BM->PinPage(tPid, (Page *&)tPage);
 						tS = (BTLeafPage *)tPage;
-						tS->SetNextPage(left.pid);
+						tS->SetPrevPage(left.pid);
 						MINIBASE_BM->UnpinPage(tPid, DIRTY);
 					}
 
-					S->SetPrevPage(tPid);
+					S->SetNextPage(tPid);
 
 					MINIBASE_BM->UnpinPage(pid, DIRTY);
 					MINIBASE_BM->UnpinPage(Ppid, DIRTY);
