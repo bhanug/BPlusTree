@@ -819,7 +819,7 @@ BTreeFile::OpenScan(const int *lowKey, const int *highKey)
 
 	bTFileScan->highKey = highKey;
 	bTFileScan->lowKey = lowKey;
-	bTFileScan->tree = this;
+	//bTFileScan->tree = this;
 	bTFileScan->firstTime = true;
 
 	IndexEntry index_entry, t_entry;

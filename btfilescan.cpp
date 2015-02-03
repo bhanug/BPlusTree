@@ -185,6 +185,11 @@ BTreeFileScan::GetNext (RecordID &rid, int &key)
 Status 
 BTreeFileScan::DeleteCurrent ()
 {  
+	if (FAIL == curLeaf->Delete(curKey, cur_rid, t_rid))
+		return DONE;
+
+	t_rid.slotNo--;
+
 	return OK;
 }
 
