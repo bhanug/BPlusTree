@@ -539,16 +539,19 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 					if (S->GetNumOfRecords() > treeOrder)
 					{
 						// Redistribution
+						IndexEntry  tEntrySaved;
 						S->GetFirst(tEntry.key, tEntry.pid, tRid);
-						while (S->GetNext(tEntry.key, tEntry.pid, tRid) != DONE)
-							;
-						S->Delete(tEntry.key, tRid);
+						tEntrySaved = tEntry;
+						while (S->GetNext(tEntry.key, tEntry.pid, tRid) != DONE) {
+							tEntrySaved = tEntry;
+						}
+						S->Delete(tEntrySaved.key, tRid);
 
 						P->Delete(right.key, tRid);
-						P->Insert(tEntry.key, right.pid, tRid);
+						P->Insert(tEntrySaved.key, right.pid, tRid);
 
 						N->Insert(right.key, N->GetLeftLink(), tRid);
-						N->SetLeftLink(tEntry.pid);
+						N->SetLeftLink(tEntrySaved.pid);
 
 						// Set oldchildentry to null
 						oldchildentry = NULL;
@@ -713,12 +716,17 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 				if (S->GetNumOfRecords() > treeOrder)
 				{
 					// Redistribution
+					LeafEntry tEntrySaved;
 					S->GetFirst(tEntry.key, tEntry.rid, tRid);
-					while (S->GetNext(tEntry.key, tEntry.rid, tRid) != DONE)
-						;
-					S->Delete(tEntry.key, tEntry.rid, tRid);
+					tEntrySaved = tEntry;
+					while (S->GetNext(tEntry.key, tEntry.rid, tRid) != DONE) {
+						tEntrySaved = tEntry;
+					}
+					if (S->Delete(tEntrySaved.key, tEntrySaved.rid, tRid) == FAIL) {
+						std::cout << "delete key = " << tEntrySaved.key << "FAIL!!" << std::endl;
+					}
 
-					L->Insert(tEntry.key, tEntry.rid, tRid);
+					L->Insert(tEntrySaved.key, tEntrySaved.rid, tRid);
 
 					L->GetFirst(tEntry.key, tEntry.rid, tRid);
 
