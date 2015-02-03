@@ -99,24 +99,24 @@ BTreeFile::Insert (const int key, const RecordID rid)
 	// root node was just split
 	if (new_index_entry != NULL)
 	{
-		PageID Rpid;
-		RecordID tRid;
-		SortedPage *Rpage;
-		BTIndexPage *R;
+		PageID pid;
+		RecordID rid;
+		SortedPage *page;
+		BTIndexPage *newIndexPage;
 
 		// Create a new root-node page
-		MINIBASE_BM->NewPage(Rpid, (Page *&)Rpage);
-		MINIBASE_BM->PinPage(Rpid, (Page *&)Rpage);
-		R = (BTIndexPage *)Rpage;
-		R->Init(Rpid);
-		R->SetType(INDEX_NODE);
-		R->Insert(new_index_entry->key, new_index_entry->pid, tRid);
-		R->SetLeftLink(rootPid);
+		MINIBASE_BM->NewPage(pid, (Page *&)page);
+		MINIBASE_BM->PinPage(pid, (Page *&)page);
+		newIndexPage = (BTIndexPage *)page;
+		newIndexPage->Init(pid);
+		newIndexPage->SetType(INDEX_NODE);
+		newIndexPage->Insert(new_index_entry->key, new_index_entry->pid, rid);
+		newIndexPage->SetLeftLink(rootPid);
 
 		// Change the root node
-		rootPid = Rpid;
+		rootPid = pid;
 
-		MINIBASE_BM->UnpinPage(Rpid, DIRTY);
+		MINIBASE_BM->UnpinPage(pid, DIRTY);
 		delete new_index_entry;
 	}
 	return s;
@@ -153,7 +153,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 
 		MINIBASE_BM->UnpinPage(pid, CLEAN);
 
-		// Recursively, insert entry
+		// Recursion, insert entrys
 		do_insert(childPid, leafEntry, new_index_entry);
 
 		// after the Recursion return, we will go to here!
@@ -168,7 +168,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 			indexPage = (BTIndexPage *)page;
 
 			// Usual case ; there exists enough space
-			if (indexPage->GetNumOfRecords() < 2 * treeOrder)
+			if (indexPage->AvailableSpace() > sizeof(IndexEntry))
 			{
 				// Insert new child into N
 				indexPage->Insert(new_index_entry->key, new_index_entry->pid, tRid);
