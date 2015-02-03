@@ -122,7 +122,7 @@ BTreeFile::Insert (const int key, const RecordID rid)
 	return s;
 }
 
-Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new_index_entry)
+Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * &new_index_entry)
 {
 	SortedPage *page;
 	RecordID tRid;
@@ -134,36 +134,27 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 		BTIndexPage *indexPage = (BTIndexPage *)page;	// non-leaf node
 		PageID childPid;
 		IndexEntry index, indexSaved;
-		int i = 0;
 
 		// Choose a subtree
 		indexPage->GetFirst(index.key, index.pid, tRid);
 
-		while (index.key < entry.key) // not <= , beacuse in Index Node there is no dumplicate number 
-		{
-			i++;
-			indexSaved = index;
-
-			if (indexPage->GetNext(index.key, index.pid, tRid) == DONE)
-			{
-				//No more entires
-				break;
-			}
-		}
-
-		if (i == 0)
-		{
+		if (index.key > leafEntry.key) {
 			childPid = indexPage->GetLeftLink();
 		}
-		else
-		{
+		else {
+			indexSaved = index;
+			while (index.key < leafEntry.key) { // we don't support duplicate numbers!!!!1
+				indexSaved = index;
+				if (indexPage->GetNext(index.key, index.pid, tRid) == DONE)
+					break;
+			}
 			childPid = indexSaved.pid;
 		}
 
 		MINIBASE_BM->UnpinPage(pid, CLEAN);
 
 		// Recursively, insert entry
-		do_insert(childPid, entry, new_index_entry);
+		do_insert(childPid, leafEntry, new_index_entry);
 
 		// after the Recursion return, we will go to here!
 		if (new_index_entry == NULL)
@@ -203,9 +194,6 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 				newIndexPage = (BTIndexPage *)page2;
 				newIndexPage->Init(pid2);
 				newIndexPage->SetType(INDEX_NODE);
-
-				// Split N
-				indexPage->GetFirst(tEntry.key, tEntry.pid, tRid);
 
 				while (!indexPage->IsEmpty())
 				{
@@ -263,7 +251,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 		// Usual case
 		if (leafPage->GetNumOfRecords() < 2 * treeOrder)
 		{
-			leafPage->Insert(entry.key, entry.rid, tRid);
+			leafPage->Insert(leafEntry.key, leafEntry.rid, tRid);
 			MINIBASE_BM->UnpinPage(pid, DIRTY);
 			return OK;
 		}
@@ -288,9 +276,9 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 			while (!leafPage->IsEmpty())
 			{
 				leafPage->GetFirst(tEntry.key, tEntry.rid, tRid);
-				if (insertFlag && tEntry.key > entry.key)
+				if (insertFlag && tEntry.key > leafEntry.key)
 				{
-					temp[i] = entry;
+					temp[i] = leafEntry;
 					i = i + 1;
 					insertFlag = false;
 				}
@@ -301,7 +289,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry entry, IndexEntry * &new
 
 			if (insertFlag)
 			{
-				temp[i] = entry;
+				temp[i] = leafEntry;
 				i = i + 1;
 			}
 
