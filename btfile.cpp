@@ -168,10 +168,17 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 			indexPage = (BTIndexPage *)page;
 
 			// Usual case ; there exists enough space
-			if (indexPage->AvailableSpace() > sizeof(IndexEntry))
+			if (indexPage->AvailableSpace() >= A_INDEX_NODE_SIZE)
 			{
 				// Insert new child into N
-				indexPage->Insert(new_index_entry->key, new_index_entry->pid, tRid);
+
+				if (indexPage->Insert(new_index_entry->key, new_index_entry->pid, tRid) != OK) {
+					std::cout << "Error : insert to index node" << std::endl;
+					std::cout << "number of records / slotnumber = " << page->GetNumOfRecords() << std::endl;
+					std::cout << "AvailableSpace() = " << indexPage->AvailableSpace();
+					std::cout << ", less than leafEntry + Slot = " << sizeof(IndexEntry) + 2 * sizeof(short) << std::endl;
+					return FAIL;
+				}
 				MINIBASE_BM->UnpinPage(pid, DIRTY);
 				// Set newchildentry to NULL
 				delete new_index_entry;
@@ -184,7 +191,9 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 				PageID pid2;
 				SortedPage *page2;
 				BTIndexPage *newIndexPage;
-				IndexEntry tEntry, *temp = new IndexEntry[2 * treeOrder + 1];
+				int n = indexPage->GetNumOfRecords();
+				IndexEntry tEntry, *temp = new IndexEntry[n + 1];
+				std::cout << "new allocate n temp IndexEntrys, n = " << n << std::endl;
 				int i = 0, j = 0;
 				bool insertFlag = true;
 
@@ -215,7 +224,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 					i = i + 1;
 				}
 
-				for (; j < treeOrder; j++)
+				for (; j < n/2; j++)
 				{
 					indexPage->Insert(temp[j].key, temp[j].pid, tRid);
 				}
@@ -234,7 +243,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 				// *newchildentry set to guide searches btwn N and N2
 				delete new_index_entry;
 				new_index_entry = new IndexEntry;
-				new_index_entry->key = temp[treeOrder].key;
+				new_index_entry->key = temp[splited_new_entry].key;
 				new_index_entry->pid = pid2;
 
 				MINIBASE_BM->UnpinPage(pid, DIRTY);
@@ -249,11 +258,13 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 		BTLeafPage *leafPage = (BTLeafPage *)page;	// leaf node
 
 		// Usual case
-		if (leafPage->GetNumOfRecords() < 2 * treeOrder)
+		if (leafPage->AvailableSpace() >= A_LEAF_NODE_SIZE)
 		{
-			std::cout << "insert in leaf " << std::endl;
 			if (leafPage->Insert(leafEntry.key, leafEntry.rid, tRid) != OK) {
 				std::cout << "Error in insert to leaf" << std::endl;
+				std::cout << "number of records / slotnumber = " << page->GetNumOfRecords() << std::endl;
+				std::cout << "AvailableSpace() = " << leafPage->AvailableSpace();
+				std::cout << ", less than leafEntry + Slot = " << sizeof(LeafEntry)+2*sizeof(short) << std::endl;
 				return FAIL;
 			}
 			MINIBASE_BM->UnpinPage(pid, DIRTY);
@@ -265,7 +276,9 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 			PageID pidNew, Spid;
 			SortedPage *page2, *Spage;
 			BTLeafPage *L2, *S;
-			LeafEntry tEntry, *temp = new LeafEntry[2 * treeOrder + 1];
+			int n = leafPage->GetNumOfRecords();
+			LeafEntry tEntry, *temp = new LeafEntry[n + 1];
+			std::cout << "new allocate n temp LeafEntrys, n = " << n << std::endl;
 			int i = 0, j = 0;
 			bool insertFlag = true;
 
@@ -297,7 +310,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 				i = i + 1;
 			}
 
-			for (j = 0; j < treeOrder; j++)
+			for (j = 0; j < n/2; j++)
 			{
 				leafPage->Insert(temp[j].key, temp[j].rid, tRid);
 			}
@@ -310,7 +323,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 			// Set *newchildentry
 			delete new_index_entry;
 			new_index_entry = new IndexEntry;
-			new_index_entry->key = temp[treeOrder].key;
+			new_index_entry->key = temp[n/2].key;
 			new_index_entry->pid = pidNew;
 
 			// Set sibling pointers
@@ -437,7 +450,7 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 				return OK;
 			}
 			// Check for underflow
-			else if (N->GetNumOfRecords() >= treeOrder || pid == rootPid)
+			else if ((N->IsAtLeastHalfFull() == true) || pid == rootPid)
 			{
 				delete oldchildentry;
 				oldchildentry = NULL;
@@ -463,7 +476,7 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 					S = (BTIndexPage *)Spage;
 
 					// S has extra entries
-					if (S->GetNumOfRecords() > treeOrder)
+					if (S->IsAtLeastHalfFull() == true)
 					{
 						PageID tPid;
 
@@ -530,7 +543,7 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 					S = (BTIndexPage *)Spage;
 
 					// S has extra entries
-					if (S->GetNumOfRecords() > treeOrder)
+					if (S->IsAtLeastHalfFull() == true)
 					{
 						// Redistribution
 						IndexEntry  tEntrySaved;
@@ -593,7 +606,7 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 
 		L->Delete(entry.key, entry.rid, tRid);
 
-		if (L->GetNumOfRecords() >= treeOrder || pid == rootPid)
+		if ((L->IsAtLeastHalfFull() == true) || pid == rootPid)
 		{
 			std::cout << "delete leaf / root page element" << std::endl;
 			if (oldchildentry != NULL) {
@@ -625,7 +638,7 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 				S = (BTLeafPage *)Spage;
 
 				// S has extra entries
-				if (S->GetNumOfRecords() > treeOrder)
+				if (S->IsAtLeastHalfFull() == true)
 				{
 					// Redistribution
 					S->GetFirst(tEntry.key, tEntry.rid, tRid);
@@ -705,7 +718,7 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 				S = (BTLeafPage *)Spage;
 
 				// S has extra entries
-				if (S->GetNumOfRecords() > treeOrder)
+				if (S->IsAtLeastHalfFull() == true)
 				{
 					// Redistribution
 					LeafEntry tEntrySaved;
