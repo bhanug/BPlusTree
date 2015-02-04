@@ -167,7 +167,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 			indexPage = (BTIndexPage *)page;
 
 			// Usual case ; there exists enough space
-			if (indexPage->AvailableSpace() >= A_INDEX_NODE_SIZE)
+			if (indexPage->GetNumOfRecords() < 2*degree)
 			{
 				// Insert new child into N
 
@@ -256,11 +256,11 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 		BTLeafPage *leafPage = (BTLeafPage *)page;	// leaf node
 
 		// Usual case
-		if (leafPage->AvailableSpace() >= A_LEAF_NODE_SIZE)
+		if (leafPage->GetNumOfRecords() < 2*degree)
 		{
 			if (leafPage->Insert(leafEntry.key, leafEntry.rid, tRid) != OK) {
 				std::cout << "Error in insert to leaf" << std::endl;
-				std::cout << "number of records / slotnumber = " << page->GetNumOfRecords() << std::endl;
+				std::cout << "number of records / slotnumber = " << leafPage->GetNumOfRecords() << std::endl;
 				std::cout << "AvailableSpace() = " << leafPage->AvailableSpace();
 				std::cout << ", less than leafEntry + Slot = " << sizeof(LeafEntry)+2*sizeof(short) << std::endl;
 				return FAIL;
@@ -276,7 +276,7 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 			BTLeafPage *newLeafPage, *sibling;
 			int n = leafPage->GetNumOfRecords();
 			LeafEntry tEntry, *temp = new LeafEntry[n + 1];
-			//std::cout << "new allocate n temp LeafEntrys, n = " << n << std::endl;
+			std::cout << "new allocate n temp LeafEntrys, n = " << n << std::endl;
 			int i = 0, j = 0;
 			bool insertFlag = true;
 
@@ -435,7 +435,8 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 				return OK;
 			}
 			// Check for underflow
-			else if ((indexPage->IsAtLeastHalfFull() == true) || pid == rootPid)
+			//else if ((indexPage->IsAtLeastHalfFull() == true) || pid == rootPid)
+			else if ((indexPage->GetNumOfRecords() >= degree) || pid == rootPid)
 			{
 				delete oldchildentry;
 				oldchildentry = NULL;
@@ -460,7 +461,8 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 					siblingPage = (BTIndexPage *)Spage;
 
 					// sibling has extra entries
-					if (siblingPage->IsAtLeastHalfFull() == true)
+					//if (siblingPage->IsAtLeastHalfFull() == true)
+					if (siblingPage->GetNumOfRecords() > degree)
 					{
 						PageID tPid;
 
@@ -525,7 +527,8 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 					siblingPage = (BTIndexPage *)Spage;
 
 					// sibling has extra entries
-					if (siblingPage->IsAtLeastHalfFull() == true)
+					//if (siblingPage->IsAtLeastHalfFull() == true)
+					if (siblingPage->GetNumOfRecords() > degree)
 					{
 						// Redistribution
 						IndexEntry  tEntrySaved;
@@ -587,7 +590,8 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 
 		lefaPage->Delete(entry.key, entry.rid, tRid);
 
-		if ((lefaPage->IsAtLeastHalfFull() == true) || pid == rootPid)
+		//if ((lefaPage->IsAtLeastHalfFull() == true) || pid == rootPid)
+		if ((lefaPage->GetNumOfRecords() > degree) || pid == rootPid)
 		{
 			std::cout << "delete leaf / root page element" << std::endl;
 			if (oldchildentry != NULL) {
@@ -618,7 +622,8 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 				sibling = (BTLeafPage *)Spage;
 
 				// sibling has extra entries
-				if (sibling->IsAtLeastHalfFull() == true)
+				//if (sibling->IsAtLeastHalfFull() == true)
+				if (sibling->GetNumOfRecords() > degree)
 				{
 					// Redistribution
 					sibling->GetFirst(tEntry.key, tEntry.rid, tRid);
@@ -698,7 +703,8 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 				sibling = (BTLeafPage *)Spage;
 
 				// sibling has extra entries
-				if (sibling->IsAtLeastHalfFull() == true)
+				//if (sibling->IsAtLeastHalfFull() == true)
+				if (sibling->GetNumOfRecords() > degree)
 				{
 					// Redistribution
 					LeafEntry tEntrySaved;

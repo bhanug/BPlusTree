@@ -7,7 +7,7 @@
 #include "btfilescan.h"
 #include "bt.h"
 
-const int treeOrder = 60;
+const int degree = 4;
 const int A_INDEX_NODE_SIZE = sizeof(IndexEntry) + 2 * sizeof(short);
 const int A_LEAF_NODE_SIZE = sizeof(LeafEntry) + 2 * sizeof(short);
 
