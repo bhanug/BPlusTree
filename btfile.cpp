@@ -179,7 +179,6 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 					return FAIL;
 				}
 				MINIBASE_BM->UnpinPage(pid, DIRTY);
-				// Set newchildentry to NULL
 				delete new_index_entry;
 				new_index_entry = NULL;
 				return OK;
@@ -231,7 +230,8 @@ Status BTreeFile::do_insert(PageID pid, const LeafEntry leafEntry, IndexEntry * 
 				newIndexPage->SetLeftLink(temp[j].pid);
 
 				// because of the property of B+ Tree, No dumplicate number in Index Node
-				// so, jump j
+				// so, save j, and then jump j, 
+				// this is different from Index node
 				int splited_new_entry = j;
 				j++;
 				for (; j < i; j++)
@@ -476,7 +476,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 
 						indexPage->Insert(right.key, tPid, tRid);
 
-						// Set oldchildentry to null
 						oldchildentry = NULL;
 
 						MINIBASE_BM->UnpinPage(pid, DIRTY);
@@ -487,7 +486,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 					//Merge current page and its sibling page
 					else
 					{
-						// Set oldchildentry
 						delete oldchildentry;
 						oldchildentry = new IndexEntry;
 						*oldchildentry = right;
@@ -545,7 +543,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 						indexPage->Insert(right.key, indexPage->GetLeftLink(), tRid);
 						indexPage->SetLeftLink(tEntrySaved.pid);
 
-						// Set oldchildentry to null
 						oldchildentry = NULL;
 
 						MINIBASE_BM->UnpinPage(pid, DIRTY);
@@ -556,7 +553,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 					// Merge  current page and its left page
 					else
 					{
-						// Set oldchildentry
 						delete oldchildentry;
 						oldchildentry = new IndexEntry;
 						*oldchildentry = right;
@@ -635,7 +631,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 					parent->Delete(right.key, tRid);
 					parent->Insert(tEntry.key, right.pid, tRid);
 
-					// Set oldchildentry to null
 					oldchildentry = NULL;
 
 					MINIBASE_BM->UnpinPage(pid, DIRTY);
@@ -648,7 +643,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 				{
 					PageID tPid;
 
-					// Set oldchildentry
 					delete oldchildentry;
 					oldchildentry = new IndexEntry;
 					*oldchildentry = right;
@@ -724,7 +718,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 					parent->Delete(right.key, tRid);
 					parent->Insert(tEntry.key, right.pid, tRid);
 
-					// Set oldchildentry to null
 					oldchildentry = NULL;
 
 					MINIBASE_BM->UnpinPage(pid, DIRTY);
@@ -737,7 +730,6 @@ BTreeFile::do_delete(PageID Ppid, PageID pid, const LeafEntry entry, IndexEntry 
 				{
 					PageID tPid;
 
-					// Set oldchildentry
 					delete oldchildentry;
 					oldchildentry = new IndexEntry;
 					*oldchildentry = right;
