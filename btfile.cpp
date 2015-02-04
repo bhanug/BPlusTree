@@ -803,7 +803,7 @@ BTreeFile::OpenScan(const int *lowKey, const int *highKey)
 	bTFileScan->lowKey = lowKey;
 	bTFileScan->firstTime = true;
 
-	IndexEntry index_entry, t_entry;
+	IndexEntry index_entry, indexEntrySaved;
 	RecordID t_rid;
 
 	int temp = 0;
@@ -814,37 +814,27 @@ BTreeFile::OpenScan(const int *lowKey, const int *highKey)
 		pid = rootPid;
 
 		MINIBASE_BM->PinPage(rootPid, (Page *&)page);
+
 		while (page->GetType() == INDEX_NODE)
 		{
 			((BTIndexPage *)page)->GetFirst(index_entry.key, index_entry.pid, t_rid);
 			MINIBASE_BM->UnpinPage(pid, CLEAN);
-			////////////////
-			temp = 0;
-			while (index_entry.key < *lowKey)
-			{
-				temp++;
-				t_entry = index_entry;
-
-				if (((BTIndexPage *)page)->GetNext(index_entry.key, index_entry.pid, t_rid) == DONE)
-				{
-					break;
+			if (index_entry.key > *lowKey) {
+				pid = ((BTIndexPage*)page)->GetLeftLink();
+			}
+			else {
+				indexEntrySaved = index_entry;
+				while (index_entry.key < *lowKey) {
+					indexEntrySaved = index_entry;
+					if (((BTIndexPage*)page)->GetNext(index_entry.key, index_entry.pid, t_rid) == DONE) {
+						break;
+					}
 				}
-			}
-
-			///////////////////
-			if (!temp)
-			{
-				pid = ((BTIndexPage *)page)->GetLeftLink();
-			}
-			else
-			{
-				index_entry = t_entry;
-				pid = index_entry.pid;
+				pid = indexEntrySaved.pid;
 			}
 
 			MINIBASE_BM->PinPage(pid, (Page *&)page);
 		}
-		//bTFileScan->curLeaf = (BTLeafPage *&)page;
 		MINIBASE_BM->UnpinPage(pid, CLEAN);
 		s = MINIBASE_BM->PinPage(pid, (Page *&)bTFileScan->curLeaf);
 		bTFileScan->cur_pid = pid;
@@ -863,11 +853,9 @@ BTreeFile::OpenScan(const int *lowKey, const int *highKey)
 		}
 		MINIBASE_BM->UnpinPage(nextPid, CLEAN);
 
-
 		s = MINIBASE_BM->PinPage(nextPid, (Page *&)bTFileScan->curLeaf);
 		bTFileScan->cur_pid = nextPid;
 		if (s != OK) return NULL;
-
 	}
 
 	return bTFileScan;
